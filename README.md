@@ -1,36 +1,262 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📝 Blog Frontend
 
-## Getting Started
+Interface web d'un blog fullstack construite avec **Next.js 16**, **React 19**, **MUI**, **React Query**, et **NextAuth v5** (Keycloak).
 
-First, run the development server:
+---
+
+## 🧱 Stack technique
+
+| Technologie | Rôle |
+|---|---|
+| Next.js 16 (App Router) | Framework React SSR/CSR |
+| React 19 | UI |
+| TypeScript | Typage statique |
+| Material UI (MUI) v6 | Composants UI + thème |
+| Axios | Client HTTP |
+| @tanstack/react-query v5 | Gestion état serveur + cache |
+| React Hook Form | Gestion formulaires + validation |
+| NextAuth v5 (beta) | Authentification OAuth2 |
+| Keycloak | Fournisseur d'identité (IdP) |
+
+---
+
+## 🔗 Backend associé
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend Spring Boot | http://localhost:8089/api/v1 |
+| Keycloak | http://localhost:8080/realms/blog-realm |
+
+---
+
+## 📁 Architecture du projet
+
+```
+blog-frontend/
+├── src/
+│   ├── app/
+│   │   ├── api/auth/[...nextauth]/   # Endpoint NextAuth (Keycloak callback)
+│   │   ├── articles/                 # Liste, détail, recherche articles
+│   │   ├── dashboard/                # Gestion articles (CRUD)
+│   │   ├── login/                    # Page de connexion
+│   │   ├── profile/                  # Profil utilisateur
+│   │   ├── layout.tsx                # Layout racine (Providers)
+│   │   └── page.tsx                  # Page d'accueil
+│   ├── components/
+│   │   ├── article/
+│   │   │   ├── ArticleCard.tsx       # Carte article (MUI Card)
+│   │   │   └── ArticleForm.tsx       # Formulaire (RHF + MUI + useMutation)
+│   │   ├── comment/
+│   │   │   ├── CommentForm.tsx       # Formulaire commentaire (MUI TextField)
+│   │   │   └── CommentList.tsx       # Liste commentaires (MUI List)
+│   │   ├── layout/
+│   │   │   ├── Navbar.tsx            # MUI AppBar + état session
+│   │   │   ├── Footer.tsx            # Pied de page
+│   │   │   └── Providers.tsx         # SessionProvider + QueryClient + ThemeProvider
+│   │   └── ui/
+│   │       ├── Button.tsx            # Bouton MUI réutilisable
+│   │       └── Input.tsx             # Input MUI réutilisable
+│   ├── lib/
+│   │   ├── api.ts                    # Instance Axios + intercepteur JWT
+│   │   ├── auth.ts                   # Configuration NextAuth + Keycloak
+│   │   ├── react-query.ts            # Configuration QueryClient
+│   │   └── theme.ts                  # Thème MUI personnalisé
+│   ├── services/
+│   │   ├── article.service.ts        # Appels HTTP /articles
+│   │   ├── comment.service.ts        # Appels HTTP /comments
+│   │   └── user.service.ts           # Appels HTTP /users
+│   └── types/
+│       ├── article.types.ts          # Interfaces Article
+│       ├── comment.types.ts          # Interfaces Comment
+│       ├── user.types.ts             # Interfaces User
+│       └── next-auth.d.ts            # Extension types Session NextAuth
+├── .env.local
+├── next.config.ts
+├── tsconfig.json
+└── package.json
+```
+
+---
+
+
+### 3. Configurer `.env.local`
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8089/api/v1
+
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=une_chaine_secrete_longue
+
+KEYCLOAK_CLIENT_ID=blog-client
+KEYCLOAK_CLIENT_SECRET=
+KEYCLOAK_ISSUER=http://localhost:8080/realms/blog-realm
+```
+
+### 4. Lancer
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎨 MUI — Utilisation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Thème `src/lib/theme.ts`
 
-## Learn More
+```typescript
+import { createTheme } from "@mui/material/styles";
 
-To learn more about Next.js, take a look at the following resources:
+export const theme = createTheme({
+  palette: {
+    primary: { main: "#1976d2" },
+    secondary: { main: "#dc004e" },
+  },
+  typography: {
+    fontFamily: "Roboto, Arial, sans-serif",
+  },
+});
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Intégration dans `Providers.tsx`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```tsx
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { theme } from "@/lib/theme";
 
-## Deploy on Vercel
+export default function Providers({ children }) {
+  return (
+    <SessionProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          {children}
+        </ThemeProvider>
+      </QueryClientProvider>
+    </SessionProvider>
+  );
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Composants MUI utilisés
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Composant MUI | Utilisé dans |
+|---|---|
+| `AppBar` / `Toolbar` | Navbar |
+| `Card` / `CardContent` | ArticleCard |
+| `TextField` | ArticleForm, CommentForm |
+| `Button` | Partout |
+| `Typography` | Titres et textes |
+| `CircularProgress` | États de chargement |
+| `Alert` | Messages d'erreur |
+| `List` / `ListItem` | CommentList |
+| `Avatar` | Profil utilisateur |
+| `Pagination` | Liste articles |
+
+### Exemple — ArticleForm avec MUI + React Hook Form
+
+```tsx
+import { TextField, Button, Box } from "@mui/material";
+import { useForm } from "react-hook-form";
+
+export default function ArticleForm() {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+
+  return (
+    <Box component="form" onSubmit={handleSubmit(onSubmit)}
+      sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <TextField
+        label="Titre"
+        error={!!errors.title}
+        helperText={errors.title?.message as string}
+        {...register("title", { required: "Le titre est obligatoire" })}
+      />
+      <TextField
+        label="Contenu"
+        multiline
+        rows={6}
+        error={!!errors.content}
+        helperText={errors.content?.message as string}
+        {...register("content", { required: "Le contenu est obligatoire" })}
+      />
+      <Button type="submit" variant="contained">Publier</Button>
+    </Box>
+  );
+}
+```
+
+---
+
+## 🔐 Authentification — Flux Keycloak
+
+```
+1. Clic "Se connecter"
+        ↓
+2. signIn("keycloak") → redirection Keycloak
+        ↓
+3. Saisie identifiants sur Keycloak
+        ↓
+4. Callback NextAuth : /api/auth/callback/keycloak
+        ↓
+5. Session créée + JWT stocké
+        ↓
+6. Axios injecte : Authorization: Bearer <token>
+        ↓
+7. Spring Boot valide et répond
+```
+
+### Configuration Keycloak requise
+
+```
+Realm             → blog-realm
+Client            → blog-client
+Access Type       → public
+Valid Redirect    → http://localhost:3000/*
+Web Origins       → http://localhost:3000
+```
+
+---
+
+## 🔄 React Query — Stratégie de cache
+
+```typescript
+// Lecture avec cache par page
+const { data, isLoading } = useQuery({
+  queryKey: ["articles", page],
+  queryFn: () => articleService.getAll(page),
+  placeholderData: (prev) => prev,
+});
+
+// Mutation avec invalidation automatique
+const { mutate } = useMutation({
+  mutationFn: (dto) => articleService.create(dto),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["articles"] });
+  },
+});
+```
+
+---
+
+## 🛣️ Routes
+
+| Route | Description | Auth |
+|---|---|---|
+| `/` | Accueil | Non |
+| `/login` | Connexion Keycloak | Non |
+| `/articles` | Liste paginée | Non |
+| `/articles/[id]` | Détail + commentaires | Non |
+| `/articles/search` | Recherche | Non |
+| `/dashboard` | Tableau de bord | Oui |
+| `/dashboard/articles` | CRUD articles | Oui |
+| `/profile` | Profil utilisateur | Oui |
+
+---
+
+
+
+## 👤 Auteur
+
+Projet réalisé avec Next.js 16 + Spring Boot + Keycloak + MUI.
